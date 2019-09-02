@@ -39,11 +39,11 @@ $(info --------------------------------)
 
 all: $(OBJ) $(TESTS) $(TESTSEXE) $(MAIN).exe
 
-$(MAIN).exe: src/$(MAIN).cpp
+$(MAIN).exe: src/$(MAIN).cpp $(OBJ)
 	$(info Building main)
 	$(CC) $(OPTIONS) $(DEBUG) -I$(INCLUDEDIR) src/$(MAIN).cpp $(OBJ) -o $(MAIN)
 
-$(TESTDIR)/%.o : $(TESTDIR)/%.cpp $(INCLUDEDIR)/*.h
+$(TESTDIR)/%.o : $(TESTDIR)/%.cpp $(INCLUDEDIR)/*.h $(OBJ)
 	$(info Building object test files)
 	$(CC) $(OPTIONS) $(DEBUG) -c -I$(INCLUDEDIR) -o $@ $<
 
