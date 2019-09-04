@@ -14,11 +14,10 @@ CPU::CPU()
 
 void CPU::initializate()
 {
+    // Reset all registers and buffers
     this->opcode = 0;
     this->I = 0;
     this->pc = 0x200;
-    this->delay_timer = 0;
-    this->sound_timer = 0;
     this->sp = 0;
     this->draw_flag = false;
 
@@ -27,6 +26,16 @@ void CPU::initializate()
     memset(this->gfx, 0, CPU::WIDTH * CPU::HEIGHT);
     memset(this->stack, 0, CPU::STACK_DEEPNESS);
     memset(this->key, 0, CPU::KEY_MAPPING_SIZE);
+
+    // Load fontset
+    for (size_t i = CPU::FONTSET_MEMORY_BEGIN; i < CPU::FONTSET_MEMORY_BEGIN + CPU::FONTSET_SIZE; i++)
+    {
+        this->memory[i] = CPU::FONTSET[i - CPU::FONTSET_MEMORY_BEGIN];
+    }
+
+    // Reset timers
+    this->delay_timer = 0;
+    this->sound_timer = 0;
 }
 
 std::streampos CPU::get_file_length(const string& path) const
@@ -97,6 +106,36 @@ bool CPU::load_rom(const string& path)
     return true;
 }
 
+void CPU::push(WORD value)
+{
+    if (this->sp == CPU::STACK_DEEPNESS)
+    {
+        // In case this situation happens, it can be solved increasing the stack deepness.
+
+        std::cout << "WARNING: stack overflow detected!" << std::endl;
+    }
+
+    this->stack[this->sp] = value;
+    this->sp++;
+}
+
+WORD CPU::pop()
+{
+    if (this->sp == 0)
+    {
+        // In case this situation happens, it'd be due to a logic failure or a coding failure.
+
+        std::cout << "WARNING: stack underflow detected!" << std::endl;
+    }
+
+    WORD value;
+
+    value = this->stack[this->sp - 1];
+    this->sp--;
+
+    return value;
+}
+
 void CPU::emulate_cycle()
 {
     // We disable the draw flag and at the end of this function might be enabled
@@ -113,11 +152,18 @@ void CPU::emulate_cycle()
             {
                 //   0x00E0 -> Clears the screen.
                 case 0x00E0:
+                    this->draw_flag = true;
+
+                    for (size_t i = 0; i < CPU::WIDTH * CPU::HEIGHT; i++)
+                    {
+                        this->gfx[i] = CPU::COLOR_BLACK;
+                    }
 
                     break;
                 //   0x00EE -> Returns from a subroutine.
                 case 0x00EE:
-                    
+                    this->pc = this->pop();
+                    this->pc += 2;
                     
                     break;
                 //   0x0NNN -> Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
@@ -129,22 +175,48 @@ void CPU::emulate_cycle()
             break;
         //   0x1NNN -> Jumps to address NNN.
         case 0x1000:
+            this->pc = this->opcode & 0x0FFF;
 
             break;
         //   0x2NNN -> Calls subroutine at NNN.
         case 0x2000:
+            this->push(this->pc);
+            this->pc = this->opcode & 0x0FFF;
 
             break;
-        //   0x3NNN -> Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
+        //   0x3XNN -> Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
         case 0x3000:
+        {
+            byte index = (this->opcode & 0x0F00) >> 8;
+            WORD value = this->opcode & 0x00FF;
+
+            if (this->V[index] == value)
+            {
+                this->pc += 2;
+            }
+
+            this->pc += 2;
+        }
 
             break;
-        //   0x4NNN -> Skips the next instruction if VX doesn't equal NN. (Usually the next instruction is a jump to skip a code block)
+        //   0x4XNN -> Skips the next instruction if VX doesn't equal NN. (Usually the next instruction is a jump to skip a code block)
         case 0x4000:
+        {
+            byte index = (this->opcode & 0x0F00) >> 8;
+            WORD value = this->opcode & 0x00FF;
+
+            if (this->V[index] != value)
+            {
+                this->pc += 2;
+            }
+
+            this->pc += 2;
+        }
 
             break;
         //   0x5XY0 -> Skips the next instruction if VX equals VY. (Usually the next instruction is a jump to skip a code block)
         case 0x5000:
+        {
             if ((this->opcode & 0x000F) != 0)
             {
                 this->print_unknown_opcode();
@@ -152,15 +224,40 @@ void CPU::emulate_cycle()
                 break;
             }
 
+            byte x_index = (this->opcode & 0x0F00) >> 8;
+            byte y_index = (this->opcode & 0x00F0) >> 4;
 
+            if (this->V[x_index] == this->V[y_index])
+            {
+                this->pc += 2;
+            }
+
+            this->pc += 2;
+        }
 
             break;
         //   0x6XNN -> Sets VX to NN.
         case 0x6000:
+        {
+            byte index = (this->opcode & 0x0F00) >> 8;
+            WORD value = this->opcode & 0x00FF;
+
+            this->V[index] = value;
+
+            this->pc += 2;
+        }
 
             break;
         //   0x7XNN -> Adds NN to VX. (Carry flag is not changed)
         case 0x7000:
+        {
+            byte index = (this->opcode & 0x0F00) >> 8;
+            WORD value = this->opcode & 0x00FF;
+
+            this->V[index] += value;
+
+            this->pc += 2;
+        }
 
             break;
         case 0x8000:
@@ -168,30 +265,104 @@ void CPU::emulate_cycle()
             {
                 //   0x8XY0 -> Sets VX to the value of VY.
                 case 0x0000:
+                {
+                    byte x_index = (this->opcode & 0x0F00) >> 8;
+                    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+                    this->V[x_index] = this->V[y_index];
+
+                    this->pc += 2;
+                }
 
                     break;
                 //   0x8XY1 -> Sets VX to VX or VY. (Bitwise OR operation)
                 case 0x0001:
+                {
+                    byte x_index = (this->opcode & 0x0F00) >> 8;
+                    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+                    this->V[x_index] |= this->V[y_index];
+
+                    this->pc += 2;
+                }
 
                     break;
                 //   0x8XY2 -> Sets VX to VX and VY. (Bitwise AND operation)
                 case 0x0002:
+                {
+                    byte x_index = (this->opcode & 0x0F00) >> 8;
+                    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+                    this->V[x_index] &= this->V[y_index];
+
+                    this->pc += 2;
+                }
 
                     break;
                 //   0x8XY3 -> Sets VX to VX xor VY.
                 case 0x0003:
+                {
+                    byte x_index = (this->opcode & 0x0F00) >> 8;
+                    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+                    this->V[x_index] ^= this->V[y_index];
+
+                    this->pc += 2;
+                }
 
                     break;
                 //   0x8XY4 -> Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
                 case 0x0004:
+                {
+                    byte x_index = (this->opcode & 0x0F00) >> 8;
+                    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+                    if (this->V[x_index] > 0xFF - this->V[y_index])
+                    {
+                        this->V[0xF] = 1;
+                    }
+                    else
+                    {
+                        this->V[0xF] = 0;
+                    }
+
+                    this->V[x_index] += this->V[y_index];
+
+                    this->pc += 2;
+                }
 
                     break;
                 //   0x8XY5 -> VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 case 0x0005:
+                {
+                    byte x_index = (this->opcode & 0x0F00) >> 8;
+                    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+                    if (this->V[x_index] < this->V[y_index])
+                    {
+                        this->V[0xF] = 1;
+                    }
+                    else
+                    {
+                        this->V[0xF] = 0;
+                    }
+
+                    this->V[x_index] -= this->V[y_index];
+
+                    this->pc += 2;
+                }
 
                     break;
                 //   0x8XY6 -> Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
                 case 0x0006:
+                {
+                    byte x_index = (this->opcode & 0x0F00) >> 8;
+
+                    this->V[0xF] = this->V[x_index] & 0x0001;
+                    this->V[x_index] >> 1;
+
+                    this->pc += 2;
+                }
 
                     break;
                 //   0x8XY7 -> Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
@@ -235,6 +406,9 @@ void CPU::emulate_cycle()
             break;
         //   0xDXYN -> Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels. Each row of 8 pixels is read as bit-coded starting from memory location I; I value doesn’t change after the execution of this instruction. As described above, VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen.
         case 0xD000:
+            this->draw_flag = true;
+
+
 
             break;
         case 0xE000:

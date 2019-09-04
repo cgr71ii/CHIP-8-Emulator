@@ -8,6 +8,10 @@
 
 using std::string;
 
+using byte = unsigned char;
+using WORD = unsigned short;
+using DWORD = unsigned int;
+
 class CPU
 {
     public:
@@ -17,7 +21,32 @@ class CPU
         static const unsigned HEIGHT = 32;
         static const unsigned STACK_DEEPNESS = 16;
         static const unsigned KEY_MAPPING_SIZE = 16;
-        static const unsigned ROM_MEMORY_BEGIN = 0x200;
+        static const unsigned ROM_MEMORY_BEGIN = 0x0200;
+        static const unsigned COLOR_BLACK = 0;
+        static const unsigned COLOR_WHITE = 1;
+
+        // Fontset
+        static const unsigned FONTSET_MEMORY_BEGIN = 0x0050;
+        static const unsigned FONTSET_SIZE = 80;
+        const byte FONTSET[CPU::FONTSET_SIZE] = 
+        {
+            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+            0x20, 0x60, 0x20, 0x20, 0x70, // 1
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+            0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+        };
 
         CPU();
 
@@ -34,10 +63,10 @@ class CPU
 
     private:
         // Current opcode
-        unsigned short opcode;
+        WORD opcode;
 
         // CHIP-8 memory (4KB = 1024B * 4 = 4096b = 4KB)
-        unsigned char memory[CPU::MEMORY_LENGTH_B];
+        byte memory[CPU::MEMORY_LENGTH_B];
 
         /*
          * CPU registers (8-bit)
@@ -45,26 +74,26 @@ class CPU
          * V[0] .. V[14] -> General purpose registers
          * V[15] -> Carry flag
          */
-        unsigned char V[CPU::GENERAL_PURPOSE_REGISTERS];
+        byte V[CPU::GENERAL_PURPOSE_REGISTERS];
 
         // Index register (0x000 - 0xFFF)
-        unsigned short I;
+        WORD I;
 
         // Program couter (0x000 - 0xFFF)
-        unsigned short pc;
+        WORD pc;
 
         // Graphics of the CHIP-8 (64 width x 32 height)
-        unsigned char gfx[CPU::WIDTH * CPU::HEIGHT];
+        byte gfx[CPU::WIDTH * CPU::HEIGHT];
 
         /*
          * Timer registers (60 Hz) for sound.
          */
 
         // Time that system's buzzer sounds
-        unsigned char delay_timer;
+        byte delay_timer;
 
         // Timer that, when reaches 0, makes the system's buzzer sounds
-        unsigned char sound_timer;
+        byte sound_timer;
 
         /*
          * Stack -> subroutines
@@ -73,17 +102,17 @@ class CPU
          */
 
         // Stack
-        unsigned short stack[CPU::STACK_DEEPNESS];
+        WORD stack[CPU::STACK_DEEPNESS];
 
         // Stack pointer
-        unsigned short sp;
+        WORD sp;
 
         /*
          * Key mapping -> HEX based keyboard (0x0 - 0xF)
          */
 
         // Key mapping
-        unsigned char key[CPU::KEY_MAPPING_SIZE];
+        byte key[CPU::KEY_MAPPING_SIZE];
 
         // Flag to know when we have to draw on the screen.
         bool draw_flag;
@@ -91,6 +120,8 @@ class CPU
         // Private function
         std::streampos get_file_length(const string&) const;
         void print_unknown_opcode() const;
+        void push(WORD);
+        WORD pop();
 };
 
 #endif
