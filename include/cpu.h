@@ -53,7 +53,7 @@ class CPU
         void initializate();
         bool load_rom(const string&);
         void emulate_cycle();
-        bool is_draw_float_set() const;
+        bool is_draw_flag_set() const;
         void update_pressed_keys();
 
         #ifdef CHIP8_CPU_DEBUG
@@ -116,6 +116,9 @@ class CPU
 
         // Flag to know when we have to draw on the screen.
         bool draw_flag;
+
+        // Variable to halt the program
+        bool halt;
 
         // Private function
         std::streampos get_file_length(const string&) const;

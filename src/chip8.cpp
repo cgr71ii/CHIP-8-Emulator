@@ -15,7 +15,7 @@ void setup_input()
 
 void draw_graphics()
 {
-    
+
 }
 
 int main(int argc, char** argv)
@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     {
         chip8_cpu.emulate_cycle();
 
-        if (chip8_cpu.is_draw_float_set())
+        if (chip8_cpu.is_draw_flag_set())
         {
             draw_graphics();
         }
