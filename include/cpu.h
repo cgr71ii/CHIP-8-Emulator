@@ -57,8 +57,9 @@ class CPU
         void update_pressed_keys();
 
         #ifdef CHIP8_CPU_DEBUG
-        void print_memory();
-        void print_status();
+        void print_memory() const;
+        void print_status() const;
+        void print_screen() const;
         #endif
 
     private:

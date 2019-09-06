@@ -24,11 +24,11 @@ void CPU::initializate()
     this->draw_flag = true; // Clear screen once
     this->halt = false;
 
-    memset(this->memory, 0, CPU::MEMORY_LENGTH_B);
-    memset(this->V, 0, CPU::GENERAL_PURPOSE_REGISTERS);
-    memset(this->gfx, 0, CPU::WIDTH * CPU::HEIGHT);
-    memset(this->stack, 0, CPU::STACK_DEEPNESS);
-    memset(this->key, 0, CPU::KEY_MAPPING_SIZE);
+    memset(this->memory, 0, CPU::MEMORY_LENGTH_B * sizeof(byte));
+    memset(this->V, 0, CPU::GENERAL_PURPOSE_REGISTERS * sizeof(byte));
+    memset(this->gfx, 0, CPU::WIDTH * CPU::HEIGHT * sizeof(byte));
+    memset(this->stack, 0, CPU::STACK_DEEPNESS * sizeof(WORD));
+    memset(this->key, 0, CPU::KEY_MAPPING_SIZE * sizeof(byte));
 
     // Load fontset
     for (size_t i = CPU::FONTSET_MEMORY_BEGIN; i < CPU::FONTSET_MEMORY_BEGIN + CPU::FONTSET_SIZE; i++)
@@ -735,7 +735,7 @@ void CPU::print_unknown_opcode() const
 
 #ifdef CHIP8_CPU_DEBUG
 
-void CPU::print_memory()
+void CPU::print_memory() const
 {
     for (size_t i = 0; i < CPU::MEMORY_LENGTH_B; i++)
     {
@@ -762,13 +762,12 @@ void CPU::print_memory()
             std:: cout << "| ";
         }
     }
-
-    std::cout << std::endl;
 }
 
-void CPU::print_status()
+void CPU::print_status() const
 {
     std::cout << "General purpose registers:" << std::endl;
+    std::cout << "--------------------------" << std::endl;
     
     for (size_t i = 0; i < CPU::GENERAL_PURPOSE_REGISTERS; i++)
     {
@@ -781,24 +780,37 @@ void CPU::print_status()
     std::cout << "Program Counter = " << (unsigned)this->pc << std::endl;
     std::cout << "Delay timer = " << (unsigned)this->delay_timer << std::endl;
     std::cout << "Sound timer = " << (unsigned)this->sound_timer << std::endl;
-    std::cout << "Draw flat = " << std::boolalpha << draw_flag << std::endl;
+    std::cout << "Draw flag = " << std::boolalpha << draw_flag << std::endl;
     std::cout << "Stack Pointer = " << (unsigned)this->sp << std::endl;
     std::cout << "Stack:" << std::endl;
+    std::cout << "------" << std::endl;
 
     for (size_t i = 0; i < CPU::STACK_DEEPNESS; i++)
     {
-        std::cout << "stack[" << i << "] = " << (unsigned)this->stack[i] << std::endl;
+        std::cout << " stack[" << i << "] = " << (unsigned)this->stack[i] << std::endl;
     }
 
     std::cout << "------" << std::endl;
     std::cout << "Key mapping:" << std::endl;
+    std::cout << "------------" << std::endl;
 
     for (size_t i = 0; i < CPU::KEY_MAPPING_SIZE; i++)
     {
-        std::cout << "key[" << i << "] = " << (unsigned)this->key[i] << std::endl;
+        std::cout << " key[" << i << "] = " << (unsigned)this->key[i] << std::endl;
     }
     
     std::cout << "------------" << std::endl;
+}
+
+void CPU::print_screen() const
+{
+    for (size_t row = 0; row < CPU::HEIGHT; row++)
+    {
+        for (size_t col = 0; col < CPU::WIDTH; col++)
+        {
+            std::cout << (unsigned)this->gfx[row * CPU::HEIGHT + col];
+        }
+    }
 }
 
 #endif
