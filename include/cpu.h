@@ -60,6 +60,8 @@ class CPU
         void print_memory() const;
         void print_status() const;
         void print_screen() const;
+        void execute_instruction(const WORD&);
+        void store(const WORD&, const byte&);
         #endif
 
     private:
@@ -126,6 +128,7 @@ class CPU
         void print_unknown_opcode(const string = "") const;
         void push(WORD);
         WORD pop();
+        void execute_instruction();
 };
 
 #endif

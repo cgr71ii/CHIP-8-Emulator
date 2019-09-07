@@ -158,6 +158,11 @@ void CPU::emulate_cycle()
     this->opcode = this->memory[this->pc] << 8 | this->memory[this->pc + 1];
 
     // Decode and execute instruction
+    this->execute_instruction();
+}
+
+void CPU::execute_instruction()
+{
     switch(this->opcode & 0xF000)
     {
         case 0x0000:
@@ -823,7 +828,21 @@ void CPU::print_screen() const
         {
             std::cout << (unsigned)this->gfx[row * CPU::HEIGHT + col];
         }
+
+        std::cout << std::endl;
     }
+}
+
+void CPU::execute_instruction(const WORD& instruction)
+{
+    this->opcode = instruction;
+
+    this->execute_instruction();
+}
+
+void CPU::store(const WORD& addr, const byte& value)
+{
+    this->memory[addr] = value;
 }
 
 #endif

@@ -21,6 +21,7 @@ foreach ($test in $tests)
     if (!$expected)
     {
         echo "Expected file for $test not found..."
+        echo ""
     }
     if ($expected)
     {
