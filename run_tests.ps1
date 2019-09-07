@@ -26,9 +26,11 @@ foreach ($test in $tests)
     {
         # Check if the test has the expected result
 
+        echo "Comparing $test$testsOutputExt and $test$testsExpectedExt ..."
         echo "---------------------------------------------------------------------"
-        Compare-Object (cat "$testsDir/$test$testsOutputExt") (cat "$testsDir/$test$testsExpectedExt")
+        Compare-Object (cat "$testsDir/$test$testsOutputExt") (cat "$testsDir/$test$testsExpectedExt") | Out-Host
         echo "---------------------------------------------------------------------"
+        echo ""
     }
 }
 
