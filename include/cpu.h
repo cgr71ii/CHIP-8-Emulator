@@ -123,7 +123,7 @@ class CPU
 
         // Private function
         std::streampos get_file_length(const string&) const;
-        void print_unknown_opcode() const;
+        void print_unknown_opcode(const string = "") const;
         void push(WORD);
         WORD pop();
 };

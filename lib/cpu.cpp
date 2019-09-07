@@ -183,6 +183,8 @@ void CPU::emulate_cycle()
                     break;
                 //   0x0NNN -> Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
                 default:
+                    this->print_unknown_opcode("RCA 1802 program invoked.");
+                    this->pc += 2;
 
                     break;
             }
@@ -235,6 +237,7 @@ void CPU::emulate_cycle()
             if ((this->opcode & 0x000F) != 0)
             {
                 this->print_unknown_opcode();
+                this->pc += 2;
 
                 break;
             }
@@ -416,6 +419,7 @@ void CPU::emulate_cycle()
                     break;
                 default:
                     this->print_unknown_opcode();
+                    this->pc += 2;
 
                     break;
             }
@@ -426,6 +430,7 @@ void CPU::emulate_cycle()
             if ((this->opcode & 0x000F) != 0)
             {
                 this->print_unknown_opcode();
+                this->pc += 2;
 
                 break;
             }
@@ -552,6 +557,7 @@ void CPU::emulate_cycle()
                     break;
                 default:
                     this->print_unknown_opcode();
+                    this->pc += 2;
 
                     break;
             }
@@ -706,6 +712,7 @@ void CPU::emulate_cycle()
                     break;
                 default:
                     this->print_unknown_opcode();
+                    this->pc += 2;
 
                     break;
             }
@@ -713,6 +720,7 @@ void CPU::emulate_cycle()
             break;
         default:
             this->print_unknown_opcode();
+            this->pc += 2;
 
             break;
     }
@@ -728,9 +736,14 @@ void CPU::update_pressed_keys()
     
 }
 
-void CPU::print_unknown_opcode() const
+void CPU::print_unknown_opcode(const string msg) const
 {
     std::cerr << "ERROR: unknown opcode (0x" << std::hex << this->opcode << std::dec << ")." << std::endl;
+
+    if (!msg.empty())
+    {
+        std::cerr << std::endl << msg << std::endl;
+    }
 }
 
 #ifdef CHIP8_CPU_DEBUG
