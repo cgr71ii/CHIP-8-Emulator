@@ -26,7 +26,7 @@ void CPU::initializate()
 
     memset(this->memory, 0, CPU::MEMORY_LENGTH_B * sizeof(byte));
     memset(this->V, 0, CPU::GENERAL_PURPOSE_REGISTERS * sizeof(byte));
-    memset(this->gfx, 0, CPU::WIDTH * CPU::HEIGHT * sizeof(byte));
+    memset(this->gfx, 0, CPU::GFX_LENGTH * sizeof(byte));
     memset(this->stack, 0, CPU::STACK_DEEPNESS * sizeof(WORD));
     memset(this->key, 0, CPU::KEY_MAPPING_SIZE * sizeof(byte));
 
@@ -142,6 +142,11 @@ WORD CPU::pop()
     return value;
 }
 
+byte* CPU::get_gfx()
+{
+    return this->gfx;
+}
+
 void CPU::emulate_cycle()
 {
     if (this->halt)
@@ -172,7 +177,7 @@ void CPU::execute_instruction()
                 case 0x00E0:
                     this->draw_flag = true;
 
-                    for (size_t i = 0; i < CPU::WIDTH * CPU::HEIGHT; i++)
+                    for (size_t i = 0; i < CPU::GFX_LENGTH; i++)
                     {
                         this->gfx[i] = CPU::COLOR_BLACK;
                     }

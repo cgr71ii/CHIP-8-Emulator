@@ -19,6 +19,7 @@ class CPU
         static const unsigned GENERAL_PURPOSE_REGISTERS = 16;
         static const unsigned WIDTH = 64;
         static const unsigned HEIGHT = 32;
+        static const unsigned GFX_LENGTH = CPU::WIDTH * CPU::HEIGHT;
         static const unsigned STACK_DEEPNESS = 16;
         static const unsigned KEY_MAPPING_SIZE = 16;
         static const unsigned ROM_MEMORY_BEGIN = 0x0200;
@@ -55,6 +56,7 @@ class CPU
         void emulate_cycle();
         bool is_draw_flag_set() const;
         void update_pressed_keys();
+        byte* get_gfx();
 
         #ifdef CHIP8_CPU_DEBUG
         void print_memory() const;
@@ -86,7 +88,7 @@ class CPU
         WORD pc;
 
         // Graphics of the CHIP-8 (64 width x 32 height)
-        byte gfx[CPU::WIDTH * CPU::HEIGHT];
+        byte gfx[CPU::GFX_LENGTH];
 
         /*
          * Timer registers (60 Hz) for sound.

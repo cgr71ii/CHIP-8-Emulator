@@ -6,6 +6,7 @@ DEBUG= #-D DEBUG
 LIBDIR=lib
 INCLUDEDIR=include
 TESTDIR=tests
+SDL2FLAGS=$(shell pkg-config sdl2 --cflags --libs)
 
 UNAME=$(shell uname)
 
@@ -57,7 +58,7 @@ all: $(OBJ) $(TESTS) $(TESTSCOMP) $(MAIN)$(EXT)
 
 $(MAIN)$(EXT): src/$(MAIN).cpp $(OBJ)
 	$(info Building main)
-	$(CC) $(OPTIONS) $(DEBUG) -I$(INCLUDEDIR) src/$(MAIN).cpp $(OBJ) -o $(MAIN)
+	$(CC) $(OPTIONS) $(DEBUG) $(SDL2FLAGS) -I$(INCLUDEDIR) src/$(MAIN).cpp $(OBJ) -o $(MAIN)
 
 $(TESTDIR)/%.o : $(TESTDIR)/%.cpp $(INCLUDEDIR)/*.h $(OBJ)
 	$(info Building object test files)
