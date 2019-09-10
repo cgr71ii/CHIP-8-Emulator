@@ -7,6 +7,8 @@ LIBDIR=lib
 INCLUDEDIR=include
 TESTDIR=tests
 
+UNAME=$(shell uname)
+
 #_OBJ= cpu.o
 #OBJ = $(patsubst %,$(LIBDIR)/%,$(_OBJ))
 
@@ -19,6 +21,7 @@ OBJ = $(patsubst $(LIBDIR)/%.cpp,$(LIBDIR)/%.o,$(_OBJ))
 
 _TESTS = $(wildcard $(TESTDIR)/*.cpp)
 TESTS = $(patsubst $(TESTDIR)/%.cpp,$(TESTDIR)/%.o,$(_TESTS))
+TESTSLIN = $(patsubst $(TESTDIR)/%.cpp,$(TESTDIR)/%,$(_TESTS))
 TESTSEXE = $(patsubst $(TESTDIR)/%.cpp,$(TESTDIR)/%.exe,$(_TESTS))
 
 # Variables for "make cleanw"
@@ -26,20 +29,33 @@ OBJW = $(subst /,\,$(OBJ))
 TESTSW = $(subst /,\,$(TESTS))
 TESTSEXEW = $(subst /,\,$(TESTSEXE))
 
+ifeq ($(UNAME), Linux)
+	EXT=
+	TESTSCOMP=$(TESTSLIN)
+else
+	EXT=.exe
+	TESTSCOMP=$(TESTSEXE)
+endif
+
+$(info [INFO] $$UNAME is [${UNAME}])
+$(info [INFO] $$EXT is [${EXT}])
+
 $(info [INFO] $$_OBJ is [${_OBJ}])
 $(info [INFO] $$OBJ is [${OBJ}])
 
 $(info [INFO] $$_TESTS is [${_TESTS}])
 $(info [INFO] $$TESTS is [${TESTS}])
+$(info [INFO] $$TESTSLIN is [${TESTSLIN}])
 $(info [INFO] $$TESTSEXE is [${TESTSEXE}])
+$(info [INFO] $$TESTSCOMP is [${TESTSCOMP}])
 
 MAIN = chip8
 
 $(info --------------------------------)
 
-all: $(OBJ) $(TESTS) $(TESTSEXE) $(MAIN).exe
+all: $(OBJ) $(TESTS) $(TESTSCOMP) $(MAIN)$(EXT)
 
-$(MAIN).exe: src/$(MAIN).cpp $(OBJ)
+$(MAIN)$(EXT): src/$(MAIN).cpp $(OBJ)
 	$(info Building main)
 	$(CC) $(OPTIONS) $(DEBUG) -I$(INCLUDEDIR) src/$(MAIN).cpp $(OBJ) -o $(MAIN)
 
@@ -47,7 +63,7 @@ $(TESTDIR)/%.o : $(TESTDIR)/%.cpp $(INCLUDEDIR)/*.h $(OBJ)
 	$(info Building object test files)
 	$(CC) $(OPTIONS) $(DEBUG) -c -I$(INCLUDEDIR) -o $@ $<
 
-$(TESTDIR)/%.exe : $(TESTDIR)/%.o $(INCLUDEDIR)/*.h
+$(TESTDIR)/%$(EXT) : $(TESTDIR)/%.o $(INCLUDEDIR)/*.h
 	$(info Compiling test files)
 	$(CC) $(OPTIONS) $(DEBUG) -I$(INCLUDEDIR) $< $(OBJ) -o $@
 
@@ -56,4 +72,10 @@ $(LIBDIR)/%.o : $(LIBDIR)/%.cpp $(INCLUDEDIR)/%.h
 	$(CC) $(OPTIONS) $(DEBUG) -c -I$(INCLUDEDIR) -o $@ $<
 
 clean:
+	$(info Use "cleanw" for windows and "cleanl" for linux.)
+
+cleanw:
 	erase /F /Q $(MAIN).exe $(OBJW) $(TESTSW) $(TESTSEXEW)
+
+cleanl:
+	rm -f $(MAIN) $(OBJ) $(TESTS) $(TESTSLIN)
