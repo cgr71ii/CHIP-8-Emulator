@@ -3,6 +3,7 @@
 
 #define CHIP8_CPU_DEBUG
 //#define CHIP8_CPU_DEBUG_LOAD_ROM_VERBOSE
+#define CHIP8_CPU_DEBUG_OPCODE_VERBOSE
 
 #include <string>
 

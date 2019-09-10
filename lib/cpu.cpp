@@ -162,6 +162,10 @@ void CPU::emulate_cycle()
     // Fetch opcode
     this->opcode = this->memory[this->pc] << 8 | this->memory[this->pc + 1];
 
+    #ifdef CHIP8_CPU_DEBUG_OPCODE_VERBOSE
+    std::cout << "Current opcode: 0x" << std::hex << this->opcode << std::dec << std::endl;
+    #endif
+
     // Decode and execute instruction
     this->execute_instruction();
 }

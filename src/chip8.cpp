@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <string>
+#include <csignal>
 
 //#define CHIP8_VIDEO_DEBUG
 
@@ -12,8 +13,43 @@ struct SDL2Graphics
 {
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_Surface* surface;
+
+    SDL2Graphics() :
+        window(NULL),
+        renderer(NULL)
+    {
+    }
 };
+
+SDL2Graphics* _graphics = NULL;
+
+void delete_graphics(SDL2Graphics* graphics)
+{
+    if (graphics != NULL)
+    {
+        if (graphics->window != NULL)
+        {
+            SDL_DestroyWindow(graphics->window);
+        }
+        if (graphics->renderer != NULL)
+        {
+            SDL_DestroyRenderer(graphics->renderer);
+        }
+        
+        SDL_Quit();
+
+        delete graphics;
+    }
+}
+
+void signal_handler(int signal_num)
+{
+    std::cout << std::endl << "Interrupt signal (" << signal_num << ") received." << std::endl;
+
+    delete_graphics(_graphics);
+
+    exit(signal_num);
+}
 
 int sdl2_test()
 {
@@ -75,7 +111,22 @@ int sdl2_test()
 
 SDL2Graphics* setup_graphics()
 {
-    SDL2Graphics* graphics = new SDL2Graphics;
+    if (_graphics != NULL)
+    {
+        // If it is initialized, with this code we can use this function multiple times if needed.
+        delete _graphics;
+
+        _graphics = NULL;
+    }
+
+    _graphics = new SDL2Graphics;
+
+    if (_graphics == NULL)
+    {
+        std::cerr << "ERROR: couldn't alloc memory for the graphics. Aborting." << std::endl;
+
+        exit(-1);
+    }
 
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
     {
@@ -83,43 +134,33 @@ SDL2Graphics* setup_graphics()
         return NULL;
     }
 
-    graphics->window = SDL_CreateWindow("CHIP 8 - Emulator", 100, 100, CPU::WIDTH * SCREEN_FACTOR, CPU::HEIGHT * SCREEN_FACTOR, SDL_WINDOW_SHOWN);
+    _graphics->window = SDL_CreateWindow("CHIP 8 - Emulator", 100, 100, CPU::WIDTH * SCREEN_FACTOR, CPU::HEIGHT * SCREEN_FACTOR, SDL_WINDOW_SHOWN);
 
-    if (graphics->window == NULL)
+    if (_graphics->window == NULL)
     {
         std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
         return NULL;
     }
 
-    graphics->renderer = 
-    SDL_CreateRenderer(graphics->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    _graphics->renderer = 
+    SDL_CreateRenderer(_graphics->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
-    if (graphics->renderer == NULL)
+    if (_graphics->renderer == NULL)
     {
         std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
         return NULL;
     }
 
-    /*
-    graphics->surface = ;
-
-    if (graphics->surface == NULL)
-    {
-        std::cerr << "SDL_LoadBMP Error: " << SDL_GetError() << std::endl;
-        return NULL;
-    }
-    */
-
     // Set the color
-    SDL_SetRenderDrawColor(graphics->renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(_graphics->renderer, 0, 0, 0, 255);
 
     // Reset the graphics
-    SDL_RenderClear(graphics->renderer);
+    SDL_RenderClear(_graphics->renderer);
 
     // Render the results
-    SDL_RenderPresent(graphics->renderer);
+    SDL_RenderPresent(_graphics->renderer);
 
-    return graphics;
+    return _graphics;
 }
 
 void setup_input()
@@ -177,6 +218,9 @@ int main(int argc, char** argv)
     }
     #endif
 
+    signal(SIGINT, signal_handler);
+    signal(SIGTSTP, signal_handler);
+
     CPU chip8_cpu;
     std::string rom_path("");
     byte* gfx = chip8_cpu.get_gfx();
@@ -186,6 +230,8 @@ int main(int argc, char** argv)
     if (graphics == NULL)
     {
         std::cerr << "ERROR: something wrong happened while initializing SDL2. Aborting." << std::endl;
+
+        delete_graphics(graphics);
 
         return -1;
     }
@@ -207,8 +253,8 @@ int main(int argc, char** argv)
     else
     {
         std::cerr << "Couldn't load the ROM... aborting emulation." << std::endl;
-
-        delete graphics;
+        
+        delete_graphics(graphics);
 
         return -1;
     }
@@ -225,7 +271,7 @@ int main(int argc, char** argv)
         chip8_cpu.update_pressed_keys();
     }
 
-    delete graphics;
+    delete_graphics(graphics);
 
     return 0;
 }
