@@ -219,7 +219,11 @@ void handle_args(int argc, char** argv)
     {
         if (argc == 2)
         {
-            if (strncmp(argv[1], "--env_var=", 10) == 0)
+            if (strcmp(argv[1], "--help") == 0)
+            {
+                print_syntax_and_exit(argv);
+            }
+            else if (strncmp(argv[1], "--env_var=", 10) == 0)
             {
                 if (strlen(argv[1]) == 10)
                 {

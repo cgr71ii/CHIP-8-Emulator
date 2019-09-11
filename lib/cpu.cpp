@@ -171,7 +171,7 @@ void CPU::emulate_cycle()
     std::cout << "Current opcode: 0x" << std::hex << this->opcode << std::dec << std::endl;
     #endif
 
-    #ifdef CHIP8_CPU_DEBUG_NEXT_STEP
+    #ifdef CHIP8_CPU_DEBUG_HALT_NEXT_STEP
     std::string foo;
 
     std::cout << "Press enter... ";
@@ -180,6 +180,16 @@ void CPU::emulate_cycle()
 
     // Decode and execute instruction
     this->execute_instruction();
+
+    // Update timers
+    if (this->delay_timer > 0)
+    {
+        this->delay_timer--;
+    }
+    if (this->sound_timer > 0)
+    {
+        this->sound_timer--;
+    }
 }
 
 void CPU::execute_instruction()
