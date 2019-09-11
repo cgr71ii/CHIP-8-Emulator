@@ -118,7 +118,7 @@ void CPU::push(WORD value)
     {
         // In case this situation happens, it can be solved increasing the stack deepness.
 
-        std::cout << "WARNING: stack overflow detected!" << std::endl;
+        std::cout << "WARNING: stack overflow detected (stack)!" << std::endl;
     }
 
     this->stack[this->sp] = value;
@@ -131,7 +131,7 @@ WORD CPU::pop()
     {
         // In case this situation happens, it'd be due to a logic failure or a coding failure.
 
-        std::cout << "WARNING: stack underflow detected!" << std::endl;
+        std::cout << "WARNING: stack underflow detected (stack)!" << std::endl;
     }
 
     WORD value;
@@ -160,10 +160,22 @@ void CPU::emulate_cycle()
     this->draw_flag = false;
 
     // Fetch opcode
+    if (this->pc + 1 >= CPU::MEMORY_LENGTH_B)
+    {
+        std::cout << "WARNING: stack overflow detected (memory)!." << std::endl;
+    }
+
     this->opcode = this->memory[this->pc] << 8 | this->memory[this->pc + 1];
 
     #ifdef CHIP8_CPU_DEBUG_OPCODE_VERBOSE
     std::cout << "Current opcode: 0x" << std::hex << this->opcode << std::dec << std::endl;
+    #endif
+
+    #ifdef CHIP8_CPU_DEBUG_NEXT_STEP
+    std::string foo;
+
+    std::cout << "Press enter... ";
+    getline(std::cin, foo);
     #endif
 
     // Decode and execute instruction
@@ -181,10 +193,14 @@ void CPU::execute_instruction()
                 case 0x00E0:
                     this->draw_flag = true;
 
+                    /*
                     for (size_t i = 0; i < CPU::GFX_LENGTH; i++)
                     {
                         this->gfx[i] = CPU::COLOR_BLACK;
                     }
+                    */
+                    
+                    memset(this->gfx, CPU::COLOR_BLACK, CPU::GFX_LENGTH * sizeof(byte));
 
                     this->pc += 2;
 
@@ -503,6 +519,8 @@ void CPU::execute_instruction()
             // Each row
             for (size_t row = 0; row < n; row++)
             {
+                std::cout << "Row that is being to be drawn: 0x" << std::hex << (unsigned)this->memory[this->I + row] << std::dec << std::endl;
+
                 // Each column
                 for (size_t col = 0; col < 8; col++)
                 {
@@ -512,16 +530,18 @@ void CPU::execute_instruction()
                         std::cout << "WARNING: screen buffer overflow (might not be dangerous if is not close the end of the buffer)." << std::endl;
                     }
 
-                    if (this->memory[this->I + row] & (0x80 >> col) != 0)   // WARNING: if memory's declaration was not unsigned, this might fail when col = 0 (memory = 1000 0000 (in C2's complement, if signed, is -0) or memory = 0000 0000)
+                    if ((this->memory[this->I + row] & (0x80 >> col)) != 0)   // WARNING: if memory's declaration was not unsigned, this might fail when col = 0 (memory = 1000 0000 (in C2's complement, if signed, is -0) or memory = 0000 0000)
                     {
                         // We draw the current pixel because it is set in the sprite
 
+                        std::cout << "Setting at (" << (this->V[y_index] + row) * CPU::WIDTH << ", " <<  this->V[x_index] + col << ")" << std::endl;
+
                         //                         ROW                               COL
-                        //        --------------------------------------   ----------------------
-                        this->gfx[(this->V[y_index] + row) * CPU::HEIGHT + this->V[x_index] + col] ^= 1;
+                        //        -------------------------------------   ----------------------
+                        this->gfx[(this->V[y_index] + row) * CPU::WIDTH + this->V[x_index] + col] ^= 1;
 
                         // Collision test
-                        if (this->gfx[(this->V[y_index] + row) * CPU::HEIGHT + this->V[x_index] + col] == 0)
+                        if (this->gfx[(this->V[y_index] + row) * CPU::WIDTH + this->V[x_index] + col] == 0)
                         {
                             // Collision detected
                             this->V[0xF] = 1;
