@@ -536,6 +536,13 @@ void CPU::execute_instruction()
                         this->V[x_index] + col >= CPU::WIDTH)
                     {
                         std::cout << "WARNING: screen buffer overflow (might not be dangerous if is not close the end of the buffer)." << std::endl;
+
+                        if ((this->V[y_index] + row) * CPU::WIDTH + this->V[x_index] + col >= CPU::GFX_LENGTH)
+                        {
+                            std::cerr << "ERROR: stack overflow detected. Skipping." << std::endl;
+
+                            continue;
+                        }
                     }
 
                     if ((this->memory[this->I + row] & (0x80 >> col)) != 0)   // WARNING: if memory's declaration was not unsigned, this might fail when col = 0 (memory = 1000 0000 (in C2's complement, if signed, is -0) or memory = 0000 0000)

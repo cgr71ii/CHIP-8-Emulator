@@ -4,10 +4,13 @@
 #include <iostream>
 #include <string>
 #include <csignal>
+#include <chrono>
 
 //#define CHIP8_VIDEO_DEBUG
 
 const unsigned SCREEN_FACTOR = 10;
+const double FREQUENCY = 60.0;
+const double TIME_PER_OPCODE = 1000.0 / FREQUENCY;
 
 struct SDL2Graphics
 {
@@ -30,16 +33,24 @@ void delete_graphics(SDL2Graphics* graphics)
     {
         if (graphics->window != NULL)
         {
+            std::cout << "Destroying SDL window..." << std::endl;
+
             SDL_DestroyWindow(graphics->window);
         }
         if (graphics->renderer != NULL)
         {
+            std::cout << "Destroying SDL renderer..." << std::endl;
+
             SDL_DestroyRenderer(graphics->renderer);
         }
         
+        std::cout << "Quiting SDL..." << std::endl;
         SDL_Quit();
 
+        std::cout << "Deleting graphics..." << std::endl;
         delete graphics;
+
+        std::cout << "Graphics deleted completely." << std::endl;
     }
 }
 
@@ -303,9 +314,14 @@ int main(int argc, char** argv)
 
         return -1;
     }
+
+    double wait = TIME_PER_OPCODE;
     
     for (;;)
     {
+        std::chrono::high_resolution_clock::time_point begin = 
+            std::chrono::high_resolution_clock::now();
+
         chip8_cpu.emulate_cycle();
 
         if (chip8_cpu.is_draw_flag_set())
@@ -314,6 +330,26 @@ int main(int argc, char** argv)
         }
 
         chip8_cpu.update_pressed_keys();
+
+        std::chrono::high_resolution_clock::time_point end = 
+            std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double> time = 
+            std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+        double time_ms = time.count();
+
+        wait -= time_ms;
+
+        if (wait > 0.0)
+        {
+            SDL_Delay((int)wait);
+
+            wait = TIME_PER_OPCODE;
+        }
+        else
+        {
+            wait += TIME_PER_OPCODE;
+        }
     }
 
     delete_graphics(graphics);
