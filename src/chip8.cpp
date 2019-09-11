@@ -22,6 +22,7 @@ struct SDL2Graphics
 };
 
 SDL2Graphics* _graphics = NULL;
+std::string rom_path("");
 
 void delete_graphics(SDL2Graphics* graphics)
 {
@@ -205,8 +206,46 @@ void draw_graphics(SDL2Graphics* graphics, byte* gfx)
     SDL_RenderPresent(graphics->renderer);
 }
 
+void print_syntax_and_exit(char** argv)
+{
+    std::cerr << "Syntax: " << argv[0] << " [path_to_file | --env_var=ENV_VAR]" << std::endl;
+
+    exit(-1);
+}
+
+void handle_args(int argc, char** argv)
+{
+    if (argc > 1)
+    {
+        if (argc == 2)
+        {
+            if (strncmp(argv[1], "--env_var=", 10) == 0)
+            {
+                if (strlen(argv[1]) == 10)
+                {
+                    print_syntax_and_exit(argv);
+                }
+                else
+                {
+                    rom_path = string(getenv(argv[1] + 10));
+                }
+            }
+            else
+            {
+                rom_path = string(argv[1]);
+            }
+        }
+        else
+        {
+            print_syntax_and_exit(argv);
+        }
+    }
+}
+
 int main(int argc, char** argv)
 {
+    handle_args(argc, argv);
+
     #ifdef CHIP8_VIDEO_DEBUG
     int sdl2_test_result = sdl2_test();
 
@@ -222,7 +261,6 @@ int main(int argc, char** argv)
     signal(SIGTSTP, signal_handler);
 
     CPU chip8_cpu;
-    std::string rom_path("");
     byte* gfx = chip8_cpu.get_gfx();
 
     SDL2Graphics* graphics = setup_graphics();
@@ -240,9 +278,12 @@ int main(int argc, char** argv)
 
     chip8_cpu.initializate();
 
-    std::cout << "Type the ROM you want to load: ";
-    //std::cin >> rom_path; // It doesn't allow spaces
-    std::getline(std::cin, rom_path);   // It allows spaces
+    if (rom_path.empty())
+    {
+        std::cout << "Type the ROM you want to load: ";
+        //std::cin >> rom_path; // It doesn't allow spaces
+        std::getline(std::cin, rom_path);   // It allows spaces
+    }
 
     bool loaded = chip8_cpu.load_rom(rom_path);
 
