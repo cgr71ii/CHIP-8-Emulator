@@ -57,7 +57,7 @@ class CPU
         bool load_rom(const string&);
         void emulate_cycle();
         bool is_draw_flag_set() const;
-        void update_pressed_keys();
+        void update_pressed_keys(byte*);
         byte* get_gfx();
 
         #ifdef CHIP8_CPU_DEBUG

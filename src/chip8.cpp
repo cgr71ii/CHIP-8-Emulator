@@ -25,7 +25,16 @@ struct SDL2Graphics
 };
 
 SDL2Graphics* _graphics = NULL;
+
 std::string rom_path("");
+
+const byte KEY_MAPPING[CPU::KEY_MAPPING_SIZE] = 
+{
+    SDL_SCANCODE_1, SDL_SCANCODE_2, SDL_SCANCODE_3, SDL_SCANCODE_4,
+    SDL_SCANCODE_Q, SDL_SCANCODE_W, SDL_SCANCODE_E, SDL_SCANCODE_R,
+    SDL_SCANCODE_A, SDL_SCANCODE_S, SDL_SCANCODE_D, SDL_SCANCODE_F,
+    SDL_SCANCODE_Z, SDL_SCANCODE_X, SDL_SCANCODE_C, SDL_SCANCODE_V
+};
 
 void delete_graphics(SDL2Graphics* graphics)
 {
@@ -257,6 +266,23 @@ void handle_args(int argc, char** argv)
     }
 }
 
+void get_pressed_keys(byte* keys, size_t length, const byte* keyboard_state)
+{
+    SDL_PumpEvents();
+
+    for (size_t i = 0; i < length; i++)
+    {
+        if (keyboard_state[KEY_MAPPING[i]])
+        {
+            keys[i] = (byte)1;
+        }
+        else
+        {
+            keys[i] = (byte)0;
+        }
+    }
+}
+
 int main(int argc, char** argv)
 {
     handle_args(argc, argv);
@@ -316,6 +342,8 @@ int main(int argc, char** argv)
     }
 
     double wait = TIME_PER_OPCODE;
+    byte keys[CPU::KEY_MAPPING_SIZE];
+    const byte* keyboard_state = SDL_GetKeyboardState(NULL);
     
     for (;;)
     {
@@ -329,7 +357,8 @@ int main(int argc, char** argv)
             draw_graphics(graphics, gfx);
         }
 
-        chip8_cpu.update_pressed_keys();
+        get_pressed_keys(keys, CPU::KEY_MAPPING_SIZE, keyboard_state);
+        chip8_cpu.update_pressed_keys(keys);
 
         std::chrono::high_resolution_clock::time_point end = 
             std::chrono::high_resolution_clock::now();

@@ -188,6 +188,11 @@ void CPU::emulate_cycle()
     }
     if (this->sound_timer > 0)
     {
+        if (this->sound_timer == 1)
+        {
+            std::cout << "BEEP!" << std::endl;
+        }
+
         this->sound_timer--;
     }
 }
@@ -778,9 +783,12 @@ bool CPU::is_draw_flag_set() const
     return this->draw_flag;
 }
 
-void CPU::update_pressed_keys()
+void CPU::update_pressed_keys(byte* keys)
 {
-    
+    for (size_t i = 0; i < KEY_MAPPING_SIZE; i++)
+    {
+        this->key[i] = keys[i];
+    }
 }
 
 void CPU::print_unknown_opcode(const string msg) const
