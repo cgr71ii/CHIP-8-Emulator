@@ -133,6 +133,65 @@ class CPU
         void push(WORD);
         WORD pop();
         void execute_instruction();
+
+        // Instructions
+        void x0SET();   // Set of 0x0XXX instrs.
+        void x00E0();
+        void x00EE();
+        void x0NNN();
+
+        void x1NNN();
+
+        void x2NNN();
+
+        void x3XNN();
+
+        void x4XNN();
+
+        void x5XY0();
+
+        void x6XNN();
+
+        void x7XNN();
+
+        void x8SET();   // Set of 0x8XXX instrs.
+        void x8XY0();
+        void x8XY1();
+        void x8XY2();
+        void x8XY3();
+        void x8XY4();
+        void x8XY5();
+        void x8XY6();
+        void x8XY7();
+        void x8XYE();
+
+        void x9XY0();
+
+        void xANNN();
+
+        void xBNNN();
+        
+        void xCXNN();
+
+        void xDXYN();
+
+        void xESET();   // Set of 0xEXXX instrs.
+        void xEX9E();
+        void xEXA1();
+
+        void xFSET();   // Set of 0xFXXX instrs.
+        void xFX07();
+        void xFX0A();
+        void xFX15();
+        void xFX18();
+        void xFX1E();
+        void xFX29();
+        void xFX33();
+        void xFX55();
+        void xFX65();
+
+        // Pointer function to instructions
+        void (CPU::*instructions[0x10])();
 };
 
 #endif

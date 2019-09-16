@@ -16,6 +16,24 @@ CPU::CPU()
 
 void CPU::initializate()
 {
+    // Initializate function pointers to instructions
+    this->instructions[0x0] = &CPU::x0SET;
+    this->instructions[0x1] = &CPU::x1NNN;
+    this->instructions[0x2] = &CPU::x2NNN;
+    this->instructions[0x3] = &CPU::x3XNN;
+    this->instructions[0x4] = &CPU::x4XNN;
+    this->instructions[0x5] = &CPU::x5XY0;
+    this->instructions[0x6] = &CPU::x6XNN;
+    this->instructions[0x7] = &CPU::x7XNN;
+    this->instructions[0x8] = &CPU::x8SET;
+    this->instructions[0x9] = &CPU::x9XY0;
+    this->instructions[0xA] = &CPU::xANNN;
+    this->instructions[0xB] = &CPU::xBNNN;
+    this->instructions[0xC] = &CPU::xCXNN;
+    this->instructions[0xD] = &CPU::xDXYN;
+    this->instructions[0xE] = &CPU::xESET;
+    this->instructions[0xF] = &CPU::xFSET;
+
     // Reset all registers and buffers
     this->opcode = 0;
     this->I = 0;
@@ -198,8 +216,628 @@ void CPU::emulate_cycle()
     }
 }
 
+void CPU::x0SET()
+{
+    switch (this->opcode)
+    {
+        case 0x00E0:
+            this->x00E0();
+            break;
+        case 0x00EE:
+            this->x00EE();
+            break;
+        default:
+            this->x0NNN();
+            break;
+    }
+}
+
+//   0x00E0 -> Clears the screen.
+void CPU::x00E0()
+{
+    this->draw_flag = true;
+
+    /*
+    for (size_t i = 0; i < CPU::GFX_LENGTH; i++)
+    {
+        this->gfx[i] = CPU::COLOR_BLACK;
+    }
+    */
+    
+    memset(this->gfx, CPU::COLOR_BLACK, CPU::GFX_LENGTH * sizeof(byte));
+
+    this->pc += 2;
+}
+
+//   0x00EE -> Returns from a subroutine.
+void CPU::x00EE()
+{
+    this->pc = this->pop();
+    this->pc += 2;
+}
+
+//   0x0NNN -> Calls RCA 1802 program at address NNN. Not necessary for most ROMs.
+void CPU::x0NNN()
+{
+    this->print_unknown_opcode("RCA 1802 program invoked.");
+    this->pc += 2;
+}
+
+//   0x1NNN -> Jumps to address NNN.
+void CPU::x1NNN()
+{
+    this->pc = this->opcode & 0x0FFF;
+}
+
+//   0x2NNN -> Calls subroutine at NNN.
+void CPU::x2NNN()
+{
+    this->push(this->pc);
+    this->pc = this->opcode & 0x0FFF;
+}
+
+
+//   0x3XNN -> Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
+void CPU::x3XNN()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+    byte value = this->opcode & 0x00FF;
+
+    if (this->V[index] == value)
+    {
+        this->pc += 2;
+    }
+
+    this->pc += 2;
+}
+
+//   0x4XNN -> Skips the next instruction if VX doesn't equal NN. (Usually the next instruction is a jump to skip a code block)
+void CPU::x4XNN()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+    byte value = this->opcode & 0x00FF;
+
+    if (this->V[index] != value)
+    {
+        this->pc += 2;
+    }
+
+    this->pc += 2;
+}
+
+//   0x5XY0 -> Skips the next instruction if VX equals VY. (Usually the next instruction is a jump to skip a code block)
+void CPU::x5XY0()
+{
+    if ((this->opcode & 0x000F) != 0)
+    {
+        this->print_unknown_opcode();
+        this->pc += 2;
+
+        return;
+    }
+
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    if (this->V[x_index] == this->V[y_index])
+    {
+        this->pc += 2;
+    }
+
+    this->pc += 2;
+}
+
+//   0x6XNN -> Sets VX to NN.
+void CPU::x6XNN()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+    byte value = this->opcode & 0x00FF;
+
+    this->V[index] = value;
+
+    this->pc += 2;
+}
+
+//   0x7XNN -> Adds NN to VX. (Carry flag is not changed)
+void CPU::x7XNN()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+    byte value = this->opcode & 0x00FF;
+
+    this->V[index] += value;
+
+    this->pc += 2;
+}
+
+void CPU::x8SET()
+{
+    switch (this->opcode & 0x000F)
+    {
+        case 0x0:
+            this->x8XY0();
+            break;
+        case 0x1:
+            this->x8XY1();
+            break;
+        case 0x2:
+            this->x8XY2();
+            break;
+        case 0x3:
+            this->x8XY3();
+            break;
+        case 0x4:
+            this->x8XY4();
+            break;
+        case 0x5:
+            this->x8XY5();
+            break;
+        case 0x6:
+            this->x8XY6();
+            break;
+        case 0x7:
+            this->x8XY7();
+            break;
+        case 0xE:
+            this->x8XYE();
+            break;
+        default:
+            this->print_unknown_opcode();
+            break;
+    }
+}
+
+//   0x8XY0 -> Sets VX to the value of VY.
+void CPU::x8XY0()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    this->V[x_index] = this->V[y_index];
+
+    this->pc += 2;
+}
+
+//   0x8XY1 -> Sets VX to VX or VY. (Bitwise OR operation)
+void CPU::x8XY1()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    this->V[x_index] |= this->V[y_index];
+
+    this->pc += 2;
+}
+
+//   0x8XY2 -> Sets VX to VX and VY. (Bitwise AND operation)
+void CPU::x8XY2()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    this->V[x_index] &= this->V[y_index];
+
+    this->pc += 2;
+}
+
+//   0x8XY3 -> Sets VX to VX xor VY.
+void CPU::x8XY3()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    this->V[x_index] ^= this->V[y_index];
+
+    this->pc += 2;
+}
+
+//   0x8XY4 -> Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
+void CPU::x8XY4()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    if (this->V[x_index] > 0xFF - this->V[y_index])
+    {
+        this->V[0xF] = 1;
+    }
+    else
+    {
+        this->V[0xF] = 0;
+    }
+
+    this->V[x_index] += this->V[y_index];
+
+    this->pc += 2;
+}
+
+//   0x8XY5 -> VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+void CPU::x8XY5()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    if (this->V[x_index] < this->V[y_index])
+    {
+        // There is a borrow
+        this->V[0xF] = 0;
+    }
+    else
+    {
+        this->V[0xF] = 1;
+    }
+
+    this->V[x_index] -= this->V[y_index];
+
+    this->pc += 2;
+}
+
+//   0x8XY6 -> Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
+void CPU::x8XY6()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+
+    this->V[0xF] = this->V[x_index] & 0x01;
+    this->V[x_index] >>= 1;
+
+    this->pc += 2;
+}
+
+//   0x8XY7 -> Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+void CPU::x8XY7()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    if (this->V[y_index] < this->V[x_index])
+    {
+        // There is a borrow
+        this->V[0xF] = 0;
+    }
+    else
+    {
+        this->V[0xF] = 1;
+    }
+
+    this->V[x_index] = this->V[y_index] - this->V[x_index];
+
+    this->pc += 2;
+}
+
+//   0x8XYE -> Stores the most significant bit of VX in VF and then shifts VX to the left by 1.
+void CPU::x8XYE()
+{
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+
+    this->V[0xF] = this->V[x_index] >> 7;
+    this->V[x_index] <<= 1;
+
+    this->pc += 2;
+}
+
+//   0x9XY0 -> Skips the next instruction if VX doesn't equal VY. (Usually the next instruction is a jump to skip a code block)
+void CPU::x9XY0()
+{
+    if ((this->opcode & 0x000F) != 0)
+    {
+        this->print_unknown_opcode();
+        this->pc += 2;
+
+        return;
+    }
+
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+
+    if (this->V[x_index] != this->V[y_index])
+    {
+        this->pc += 2;
+    }
+
+    this->pc += 2;
+}
+
+//   0xANNN -> Sets I to the address NNN.
+void CPU::xANNN()
+{
+    this->I = this->opcode & 0x0FFF;
+
+    this->pc += 2;
+}
+        
+//   0xBNNN -> Jumps to the address NNN plus V0.
+void CPU::xBNNN()
+{
+    this->pc = (this->opcode & 0x0FFF) + this->V[0];
+}
+
+//   0xCXNN -> Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
+void CPU::xCXNN()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+    byte NN = (this->opcode & 0x00FF);
+
+    this->V[index] = (rand() % 0x100) & NN;
+
+    this->pc += 2;
+}
+
+//   0xDXYN -> Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
+// Each row of 8 pixels is read as bit-coded starting from memory location I; 
+// I value doesn’t change after the execution of this instruction. As described above, 
+// VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen.
+void CPU::xDXYN()
+{
+    this->draw_flag = true;
+    
+    this->V[0xF] = 0;
+
+    byte x_index = (this->opcode & 0x0F00) >> 8;
+    byte y_index = (this->opcode & 0x00F0) >> 4;
+    byte n = (this->opcode & 0x000F);
+
+    // Each row
+    for (size_t row = 0; row < n; row++)
+    {
+        // Each column
+        for (size_t col = 0; col < 8; col++)
+        {
+            if (this->V[y_index] + row >= CPU::HEIGHT || 
+                this->V[x_index] + col >= CPU::WIDTH)
+            {
+                std::cout << "WARNING: screen buffer overflow (might not be dangerous if is not close the end of the buffer)." << std::endl;
+
+                if ((this->V[y_index] + row) * CPU::WIDTH + this->V[x_index] + col >= CPU::GFX_LENGTH)
+                {
+                    std::cerr << "ERROR: stack overflow detected. Skipping." << std::endl;
+
+                    continue;
+                }
+            }
+
+            if ((this->memory[this->I + row] & (0x80 >> col)) != 0)   // WARNING: if memory's declaration was not unsigned, this might fail when col = 0 (memory = 1000 0000 (in C2's complement, if signed, is -0) or memory = 0000 0000)
+            {
+                // We draw the current pixel because it is set in the sprite
+
+                //                         ROW                               COL
+                //        -------------------------------------   ----------------------
+                this->gfx[(this->V[y_index] + row) * CPU::WIDTH + this->V[x_index] + col] ^= 1;
+
+                // Collision test
+                if (this->gfx[(this->V[y_index] + row) * CPU::WIDTH + this->V[x_index] + col] == 0)
+                {
+                    // Collision detected
+                    this->V[0xF] = 1;
+                }
+            }
+        }
+    }
+    
+    this->pc += 2;
+}
+
+void CPU::xESET()
+{
+    switch (this->opcode & 0x00FF)
+    {
+        case 0x9E:
+            this->xEX9E();
+            break;
+        case 0xA1:
+            this->xEXA1();
+            break;
+        default:
+            this->print_unknown_opcode();
+            break;
+    }
+}
+
+//   0xEX9E -> Skips the next instruction if the key stored in VX is pressed. (Usually the next instruction is a jump to skip a code block)
+void CPU::xEX9E()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    if (this->key[this->V[index]] != 0)
+    {
+        // Key at V[index] is pressed -> skip next instruction
+
+        this->pc += 2;
+    }
+
+    this->pc += 2;
+}
+
+//   0xEXA1 -> Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
+void CPU::xEXA1()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    if (this->key[this->V[index]] == 0)
+    {
+        // Key at V[index] is not pressed -> skip next instruction
+
+        this->pc += 2;
+    }
+
+    this->pc += 2;
+}
+
+void CPU::xFSET()
+{
+    switch (this->opcode & 0x00FF)
+    {
+        case 0x07:
+            this->xFX07();
+            break;
+        case 0x0A:
+            this->xFX0A();
+            break;
+        case 0x15:
+            this->xFX15();
+            break;
+        case 0x18:
+            this->xFX18();
+            break;
+        case 0x1E:
+            this->xFX1E();
+            break;
+        case 0x29:
+            this->xFX29();
+            break;
+        case 0x33:
+            this->xFX33();
+            break;
+        case 0x55:
+            this->xFX55();
+            break;
+        case 0x65:
+            this->xFX65();
+            break;
+        default:
+            this->print_unknown_opcode();
+            break;
+    }
+}
+
+//   0xFX07 -> Sets VX to the value of the delay timer.
+void CPU::xFX07()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    this->V[index] = this->delay_timer;
+
+    this->pc += 2;
+}
+
+//   0xFX0A -> A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
+void CPU::xFX0A()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+    bool key_pressed = false;
+
+    for (size_t index = 0; index < CPU::KEY_MAPPING_SIZE; index++)
+    {
+        if (this->key[index] != 0)
+        {
+            this->V[index] = index;
+            key_pressed = true;
+
+            break;
+        }
+    }
+    
+    if (key_pressed)
+    {
+        this->pc += 2;
+    }
+
+    // If the key was not pressed, the PC would not be increased, and this instruction will be executed until a key is pressed
+}
+
+//   0xFX15 -> Sets the delay timer to VX.
+void CPU::xFX15()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    this->delay_timer = this->V[index];
+
+    this->pc += 2;
+}
+
+//   0xFX18 -> Sets the sound timer to VX.
+void CPU::xFX18()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    this->sound_timer = this->V[index];
+
+    this->pc += 2;
+}
+
+//   0xFX1E -> Adds VX to I.
+void CPU::xFX1E()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    if (this->I > 0xFF - this->V[index])
+    {
+        this->V[0xF] = 1;
+    }
+    else
+    {
+        this->V[0xF] = 0;
+    }
+
+    this->I += this->V[index];
+
+    this->pc += 2;
+}
+
+//   0xFX29 -> Sets I to the location of the sprite for the character in VX. 
+// Characters 0-F (in hexadecimal) are represented by a 4x5 font.
+void CPU::xFX29()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    if (this->V[index] > 0xF ||
+        this->V[index] * 5 >= CPU::FONTSET_SIZE)    // Each character sprite is 5 bytes long
+    {
+        std::cout << "WARNING: fontset overflow." << std::endl;
+    }
+
+    this->I = CPU::FONTSET_MEMORY_BEGIN + this->V[index] * 5;
+
+    this->pc += 2;
+}
+
+//   0xFX33 -> Stores the binary-coded decimal representation of VX, 
+// with the most significant of three digits at the address in I, 
+// the middle digit at I plus 1, and the least significant digit at I plus 2. 
+// In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, 
+// the tens digit at location I+1, and the ones digit at location I+2.
+void CPU::xFX33()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    this->memory[this->I + 0] =  this->V[index] / 100;          // Most significant BCD digit
+    this->memory[this->I + 1] = (this->V[index] / 10 ) % 10;    // Middle BCD digit
+    this->memory[this->I + 2] = (this->V[index] % 100) % 10;    // Least significant BCD digit
+
+    this->pc += 2;
+}
+
+//   0xFX55 -> Stores V0 to VX (including VX) in memory starting at address I. 
+// The offset from I is increased by 1 for each value written, but I itself is left unmodified.
+void CPU::xFX55()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    for (size_t i = 0; i <= index; i++)
+    {
+        this->memory[this->I + i] = this->V[i];
+    }
+
+    this->pc += 2;
+}
+
+//   0xFX65 -> Fills V0 to VX (including VX) with values from memory starting at address I. 
+// The offset from I is increased by 1 for each value written, but I itself is left unmodified.
+void CPU::xFX65()
+{
+    byte index = (this->opcode & 0x0F00) >> 8;
+
+    for (size_t i = 0; i <= index; i++)
+    {
+        this->V[i] = this->memory[this->I + i];
+    }
+
+    this->pc += 2;
+}
+
 void CPU::execute_instruction()
 {
+    (this->*instructions[(this->opcode & 0xF000) >> 12])();
+
+    /*
     switch(this->opcode & 0xF000)
     {
         case 0x0000:
@@ -208,13 +846,6 @@ void CPU::execute_instruction()
                 //   0x00E0 -> Clears the screen.
                 case 0x00E0:
                     this->draw_flag = true;
-
-                    /*
-                    for (size_t i = 0; i < CPU::GFX_LENGTH; i++)
-                    {
-                        this->gfx[i] = CPU::COLOR_BLACK;
-                    }
-                    */
                     
                     memset(this->gfx, CPU::COLOR_BLACK, CPU::GFX_LENGTH * sizeof(byte));
 
@@ -777,6 +1408,7 @@ void CPU::execute_instruction()
 
             break;
     }
+    */
 }
 
 bool CPU::is_draw_flag_set() const
