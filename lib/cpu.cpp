@@ -191,6 +191,7 @@ void CPU::emulate_cycle()
         if (this->sound_timer == 1)
         {
             std::cout << "BEEP!" << std::endl;
+            std::cout << '\a';
         }
 
         this->sound_timer--;
