@@ -9,31 +9,16 @@
 
 using std::string;
 
-CPU::CPU()
+CPU::CPU() :
+    instructions{&CPU::x0SET, &CPU::x1NNN, &CPU::x2NNN, &CPU::x3XNN, &CPU::x4XNN, &CPU::x5XY0,
+                 &CPU::x6XNN, &CPU::x7XNN, &CPU::x8SET, &CPU::x9XY0, &CPU::xANNN, &CPU::xBNNN,
+                 &CPU::xCXNN, &CPU::xDXYN, &CPU::xESET, &CPU::xFSET}
 {
     
 }
 
 void CPU::initializate()
 {
-    // Initializate function pointers to instructions
-    this->instructions[0x0] = &CPU::x0SET;
-    this->instructions[0x1] = &CPU::x1NNN;
-    this->instructions[0x2] = &CPU::x2NNN;
-    this->instructions[0x3] = &CPU::x3XNN;
-    this->instructions[0x4] = &CPU::x4XNN;
-    this->instructions[0x5] = &CPU::x5XY0;
-    this->instructions[0x6] = &CPU::x6XNN;
-    this->instructions[0x7] = &CPU::x7XNN;
-    this->instructions[0x8] = &CPU::x8SET;
-    this->instructions[0x9] = &CPU::x9XY0;
-    this->instructions[0xA] = &CPU::xANNN;
-    this->instructions[0xB] = &CPU::xBNNN;
-    this->instructions[0xC] = &CPU::xCXNN;
-    this->instructions[0xD] = &CPU::xDXYN;
-    this->instructions[0xE] = &CPU::xESET;
-    this->instructions[0xF] = &CPU::xFSET;
-
     // Reset all registers and buffers
     this->opcode = 0;
     this->I = 0;
